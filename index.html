@@ -49,7 +49,7 @@ button,.wa{border:1px solid var(--line);border-radius:11px;padding:11px 14px;bac
 .ev{margin-top:6px;padding:7px;border-radius:8px;background:#162440;border-left:3px solid var(--a);font-size:11px;cursor:pointer}.ev.confirmado,.ev.realizado{border-left-color:var(--ok)}.ev.cotización{border-left-color:var(--warn)}.ev.negociación{border-left-color:var(--violet)}.ev.cancelado{border-left-color:var(--bad);opacity:.65}.ev small{display:block;color:#c5d0e5;margin-top:2px}
 .tableWrap{overflow:auto}.dataTable{width:100%;border-collapse:collapse}.dataTable th,.dataTable td{padding:10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}.dataTable th{color:#c1cee2}.pill{display:inline-block;padding:5px 9px;border-radius:999px;background:#172642;border:1px solid #2b4166;font-size:11px;font-weight:800}
 .pipeline{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}.pipeCol{background:#0b1221cc;border:1px solid var(--line);border-radius:15px;padding:10px}.pipeTitle{font-weight:900;margin:4px 0 10px}.pipeItem{background:#101a30;border:1px solid #223252;border-radius:10px;padding:10px;margin-bottom:8px;cursor:pointer}.pipeItem b{display:block}.pipeItem small{color:var(--muted)}
-.clientGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.clientCard{background:#0c1527d9;border:1px solid var(--line);border-radius:14px;padding:14px}
+.clientGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.clientCard{background:#0c1527d9;border:1px solid var(--line);border-radius:14px;padding:14px}.clientCard .clientMeta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.clientCard .clientMeta>div{padding:8px;border:1px solid var(--line);border-radius:9px;background:#091120aa}.clientCard .clientLabel{font-size:10px;text-transform:uppercase;color:var(--muted);font-weight:800}.clientCard .clientValue{margin-top:3px;font-weight:700}.clientStatus{display:inline-flex;align-items:center;gap:7px;padding:5px 9px;border-radius:999px;border:1px solid #2b4166;background:#172642;font-size:11px;font-weight:900}.clientStatus .dot{width:7px;height:7px;border-radius:50%;background:var(--warn);animation:clientPulse 1.6s infinite}.clientStatus.enproceso .dot{background:var(--a2)}.clientStatus.finalizado .dot{background:var(--ok)}.clientStatus.pendiente .dot{background:var(--warn)}.balanceDue{color:var(--warn);font-weight:900}.paidOk{color:var(--ok);font-weight:900}@keyframes clientPulse{0%,100%{opacity:.55;transform:scale(.9)}50%{opacity:1;transform:scale(1.15)}}
 .checklist{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.check{display:flex;align-items:center;gap:9px;padding:11px;border:1px solid var(--line);border-radius:11px;background:#0b1221aa}.check input{width:auto}
 .about{display:grid;grid-template-columns:1fr 1fr;gap:14px}.aboutHero{font-size:38px;font-weight:900}.contactBox{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .section{scroll-margin-top:90px}.hidden{display:none!important}.muted{color:var(--muted)}.small{font-size:12px}
@@ -195,6 +195,8 @@ footer{max-width:1250px;margin:auto;padding:20px;color:#8794ad;border-top:1px so
       <div class="field"><label>Tipo de evento</label><input id="type"></div>
       <div class="field"><label>Ubicación</label><input id="loc"></div>
       <div class="field"><label>Cotización / monto</label><input id="quote" inputmode="decimal" placeholder="₡"></div>
+      <div class="field"><label>Pago recibido</label><input id="paymentAmount" inputmode="decimal" placeholder="₡ 0"></div>
+      <div class="field"><label>Referencia de pago</label><input id="paymentReference" placeholder="SINPE / transferencia / efectivo"></div>
       <div class="field"><label>Etapa comercial</label><select id="stage"><option>Solicitud</option><option>Cotización</option><option>Negociación</option><option>Confirmación</option><option>Evento realizado</option></select></div>
       <div class="field"><label>Recordatorio</label><select id="rem"><option value="72">72 horas</option><option value="48">48 horas</option><option value="24">24 horas</option></select></div>
       <div class="field full"><label>Notificaciones</label><input id="notifications" placeholder="Ej. WhatsApp 72h / llamada / pago pendiente"></div>
@@ -208,7 +210,7 @@ footer{max-width:1250px;margin:auto;padding:20px;color:#8794ad;border-top:1px so
 const SUPABASE_URL="https://wnkglydohfxpvbtoyvlr.supabase.co";
 const SUPABASE_KEY="sb_publishable_zsoAKxZU_aap7Yh4HeJSkg__VreveVI";
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-let user=null,role="NONE",events=[],clients=[],quotes=[],profiles=[],view=new Date();view.setDate(1);
+let user=null,role="NONE",events=[],clients=[],quotes=[],payments=[],profiles=[],view=new Date();view.setDate(1);
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
 const iso=()=>new Date().toISOString().slice(0,10);
@@ -231,21 +233,36 @@ async function loadProfile(){
 
 async function loadAll(){
   $("syncState").textContent="● Sincronizando...";
-  const [er,cr,qr]=await Promise.all([
+  const [er,cr,qr,pr]=await Promise.all([
     sb.from("events").select("*").order("event_date",{ascending:true}),
     sb.from("clients").select("*").order("name",{ascending:true}),
-    sb.from("quotes").select("*").order("created_at",{ascending:false})
+    sb.from("quotes").select("*").order("created_at",{ascending:false}),
+    sb.from("event_payments").select("*").order("created_at",{ascending:false})
   ]);
-  if(er.error||cr.error||qr.error){
-    $("syncState").textContent="● Error de sincronización: "+(er.error?.message||cr.error?.message||qr.error?.message);
+  if(er.error||cr.error||qr.error||pr.error){
+    $("syncState").textContent="● Error de sincronización: "+(er.error?.message||cr.error?.message||qr.error?.message||pr.error?.message);
     return;
   }
-  events=er.data||[];clients=cr.data||[];quotes=qr.data||[];
+  events=er.data||[];clients=cr.data||[];quotes=qr.data||[];payments=pr.data||[];
   $("syncState").textContent="● Base conectada y sincronizada";
   renderAll();
 }
 
 function eventClient(e){return clients.find(c=>c.id===e.client_id)||null}
+function parseMoneyValue(v){const n=parseFloat(String(v??"").replace(/[^0-9.-]/g,""));return Number.isFinite(n)?n:0}
+function eventFinalCost(e){
+  const direct=parseMoneyValue(e?.quote);
+  if(direct>0)return direct;
+  const qs=(quotes||[]).filter(q=>q.event_id===e?.id&&q.status==="APROBADA");
+  return qs.length?Number(qs[0].amount||0):0;
+}
+function clientServiceStatus(e){
+  if(!e)return {label:"Pendiente",cls:"pendiente"};
+  if(e.status==="Realizado")return {label:"Finalizado",cls:"finalizado"};
+  if(e.status==="Confirmado"||e.stage==="Confirmación")return {label:"En proceso",cls:"enproceso"};
+  return {label:"Pendiente",cls:"pendiente"};
+}
+
 function eventClientName(e){return eventClient(e)?.name||e.title||"Sin cliente"}
 function eventType(e){return e.event_type||e.title||"Evento"}
 
@@ -284,8 +301,26 @@ function renderPipeline(){
 function renderClients(){
   const q=$("clientSearch").value.toLowerCase();
   $("clientGrid").innerHTML=clients.filter(c=>!q||[c.name,c.phone,c.email,c.notes].join(" ").toLowerCase().includes(q)).map(c=>{
-    const count=events.filter(e=>e.client_id===c.id).length;
-    return `<div class="clientCard"><h3 style="margin:0 0 6px">${esc(c.name)}</h3><div class="muted">${esc(c.phone||"")}</div><div class="muted">${esc(c.email||"")}</div><div style="margin-top:10px"><span class="pill">${count} evento(s)</span></div></div>`
+    const ce=events.filter(e=>e.client_id===c.id).sort((a,b)=>String(b.event_date).localeCompare(String(a.event_date)));
+    const e=ce[0]||null;
+    const p=e?(payments||[]).find(x=>x.event_id===e.id):null;
+    const finalCost=eventFinalCost(e);
+    const paid=Number(p?.amount||0);
+    const due=Math.max(finalCost-paid,0);
+    const st=clientServiceStatus(e);
+    const paymentLabel=!e?"Sin evento":finalCost<=0?"Costo pendiente":due<=0?"Pagado":paid>0?"Pago parcial":"Pendiente";
+    return `<div class="clientCard">
+      <div class="row" style="align-items:flex-start"><div><h3 style="margin:0 0 5px">${esc(c.name)}</h3><div class="muted">${esc(c.phone||"Sin teléfono")}</div></div><span class="clientStatus ${st.cls}"><span class="dot"></span>${st.label}</span></div>
+      <div class="clientMeta">
+        <div><div class="clientLabel">Tipo de evento</div><div class="clientValue">${esc(e?eventType(e):"Sin evento")}</div></div>
+        <div><div class="clientLabel">Lugar</div><div class="clientValue">${esc(e?.venue||"Sin ubicación")}</div></div>
+        <div><div class="clientLabel">Servicio confirmado</div><div class="clientValue">${finalCost>0?"₡ "+money(finalCost):"Pendiente de confirmar"}</div></div>
+        <div><div class="clientLabel">Pago</div><div class="clientValue ${due<=0&&finalCost>0?"paidOk":""}">${paymentLabel}</div></div>
+        <div><div class="clientLabel">Pagado</div><div class="clientValue paidOk">₡ ${money(paid)}</div></div>
+        <div><div class="clientLabel">Saldo pendiente</div><div class="clientValue balanceDue">₡ ${money(due)}</div></div>
+      </div>
+      <div style="margin-top:10px" class="row"><span class="pill">${ce.length} evento(s)</span>${e?`<button type="button" onclick="openEventById('${e.id}')">Ver evento</button>`:""}</div>
+    </div>`
   }).join("")||'<div class="muted">No hay clientes registrados.</div>';
 }
 
@@ -366,6 +401,16 @@ async function saveEvent(payload){
     const qRow={client_id:client.id,event_id:res.data.id,amount,status:payload.status==="Confirmado"?"APROBADA":"ENVIADA",notes:payload.notes||null,created_by:user.id};
     await sb.from("quotes").insert(qRow);
   }
+  const paidAmount=parseMoneyValue(payload.payment_amount);
+  if(res.data?.id){
+    if(paidAmount>0){
+      const finalCost=amount>0?amount:eventFinalCost(res.data);
+      const payStatus=finalCost>0&&paidAmount>=finalCost?"PAGADO":"PARCIAL";
+      await sb.from("event_payments").upsert({event_id:res.data.id,client_id:client.id,amount:paidAmount,status:payStatus,payment_date:iso(),reference:payload.payment_reference||null,notes:payload.notes||null,created_by:user.id,updated_at:new Date().toISOString()},{onConflict:"event_id"});
+    }else if(payload.id){
+      await sb.from("event_payments").delete().eq("event_id",res.data.id);
+    }
+  }
   closeModal();await loadAll();
 }
 async function deleteEvent(id){
@@ -380,8 +425,8 @@ function openEvent(e){
     $("client").value=c?.name||e.title||"";$("contact").value=e.contact||c?.phone||"";$("sd").value=e.event_date||"";$("ed").value=e.end_date||e.event_date||"";
     $("st").value=e.start_time?String(e.start_time).slice(0,5):"";$("et").value=e.end_time?String(e.end_time).slice(0,5):"";
     $("status").value=e.status||"Solicitud";$("type").value=e.event_type||e.title||"";$("loc").value=e.venue||"";
-    $("quote").value=e.quote||"";$("stage").value=e.stage||"Solicitud";$("rem").value=e.reminder_hours||72;$("notifications").value=e.notifications||"";$("notes").value=e.notes||"";
-  }else{$("sd").value=iso();$("ed").value=iso();$("rem").value=72}
+    $("quote").value=e.quote||"";const ep=(payments||[]).find(p=>p.event_id===e.id);$("paymentAmount").value=ep?.amount||"";$("paymentReference").value=ep?.reference||"";$("stage").value=e.stage||"Solicitud";$("rem").value=e.reminder_hours||72;$("notifications").value=e.notifications||"";$("notes").value=e.notes||"";
+  }else{$("sd").value=iso();$("ed").value=iso();$("rem").value=72;$("paymentAmount").value="";$("paymentReference").value=""}
 }
 function closeModal(){$("modal").classList.remove("open")}
 
@@ -432,7 +477,7 @@ $("logout").onclick=async()=>{await sb.auth.signOut();location.reload()}
 $("heroNew").onclick=()=>openEvent();$("heroFocus").onclick=()=>document.querySelector("[data-tab='calendarTab']").click();
 $("new").onclick=()=>openEvent();$("agendaNew").onclick=()=>openEvent();$("x").onclick=closeModal;$("cancel").onclick=closeModal;$("modal").onclick=e=>{if(e.target===$("modal"))closeModal()}
 $("prev").onclick=()=>{view.setMonth(view.getMonth()-1);renderCalendar();renderStats()};$("next").onclick=()=>{view.setMonth(view.getMonth()+1);renderCalendar();renderStats()};$("today").onclick=()=>{view=new Date();view.setDate(1);renderCalendar();renderStats()};$("search").oninput=renderCalendar;$("clientSearch").oninput=renderClients;
-$("form").onsubmit=async e=>{e.preventDefault();try{await saveEvent({id:$("id").value||null,client:$("client").value,contact:$("contact").value,start_date:$("sd").value,end_date:$("ed").value||$("sd").value,start_time:$("st").value,end_time:$("et").value,status:$("status").value,event_type:$("type").value,location:$("loc").value,quote:$("quote").value,stage:$("stage").value,reminder_hours:$("rem").value,notifications:$("notifications").value,notes:$("notes").value})}catch(err){alert(err.message)}}
+$("form").onsubmit=async e=>{e.preventDefault();try{await saveEvent({id:$("id").value||null,client:$("client").value,contact:$("contact").value,start_date:$("sd").value,end_date:$("ed").value||$("sd").value,start_time:$("st").value,end_time:$("et").value,status:$("status").value,event_type:$("type").value,location:$("loc").value,quote:$("quote").value,stage:$("stage").value,reminder_hours:$("rem").value,notifications:$("notifications").value,notes:$("notes").value,payment_amount:$("paymentAmount").value,payment_reference:$("paymentReference").value})}catch(err){alert(err.message)}}
 $("del").onclick=()=>deleteEvent($("id").value)
 $("export").onclick=()=>{const blob=new Blob([JSON.stringify({events,clients,quotes,exported_at:new Date().toISOString()},null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="DJ_Onyxs_respaldo_"+iso()+".json";a.click();URL.revokeObjectURL(a.href)}
 $("importBtn").onclick=()=>{$("importFile").click()}
