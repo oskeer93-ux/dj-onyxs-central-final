@@ -192,8 +192,7 @@ footer{max-width:1250px;margin:auto;padding:20px;color:#8794ad;border-top:1px so
     <div class="form">
       <div class="field"><label>Cliente / evento *</label><input id="client" required placeholder="Ej. Cumpleaños de Marely"></div>
       <div class="field"><label>Contacto</label><input id="contact"></div>
-      <div class="field"><label>Fecha inicio *</label><input id="sd" type="date" required></div>
-      <div class="field"><label>Fecha fin</label><input id="ed" type="date"></div>
+      <div class="field"><label>Fecha del evento *</label><input id="sd" type="date" required></div>
       <div class="field"><label>Hora inicio</label><input id="st" type="time"></div>
       <div class="field"><label>Hora fin</label><input id="et" type="time"></div>
       <div class="field"><label>Estado</label><select id="status"><option>Solicitud</option><option>Cotización</option><option>Negociación</option><option>Confirmado</option><option>Cancelado</option><option>Realizado</option></select></div>
@@ -285,7 +284,7 @@ function renderCalendar(){
     else{
       let di=d.toISOString().slice(0,10);if(di===iso())c.classList.add("today");
       c.innerHTML='<div class="dayhead"><span>'+n+'</span><button class="mini" data-add="'+di+'">＋</button></div>';
-      list.filter(e=>di>=String(e.event_date)&&di<=String(e.end_date||e.event_date)).forEach(e=>{
+      list.filter(e=>di===String(e.event_date)).forEach(e=>{
         let x=document.createElement("div");x.className="ev "+normalizeStatus(e.status);
         x.innerHTML="<b>"+esc(eventClientName(e))+"</b><small>"+esc(eventType(e))+(e.start_time?" · "+esc(String(e.start_time).slice(0,5)):"")+"</small><small>"+esc(e.status||"Solicitud")+"</small>";
         x.onclick=()=>openEvent(e);c.appendChild(x);
@@ -293,7 +292,7 @@ function renderCalendar(){
     }
     $("cal").appendChild(c)
   }
-  document.querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>{openEvent();$("sd").value=b.dataset.add;$("ed").value=b.dataset.add});
+  document.querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>{openEvent();$("sd").value=b.dataset.add});
 }
 
 function renderAgenda(){
@@ -431,11 +430,11 @@ function openEvent(e){
   $("ttl").textContent=e?"Editar evento":"Nueva agenda";$("del").style.display=e?"inline-block":"none";
   if(e){
     const c=eventClient(e);
-    $("client").value=c?.name||e.title||"";$("contact").value=e.contact||c?.phone||"";$("sd").value=e.event_date||"";$("ed").value=e.end_date||e.event_date||"";
+    $("client").value=c?.name||e.title||"";$("contact").value=e.contact||c?.phone||"";$("sd").value=e.event_date||"";
     $("st").value=e.start_time?String(e.start_time).slice(0,5):"";$("et").value=e.end_time?String(e.end_time).slice(0,5):"";
     $("status").value=e.status||"Solicitud";$("type").value=e.event_type||e.title||"";$("loc").value=e.venue||"";
     $("quote").value=e.quote||"";const ep=(payments||[]).find(p=>p.event_id===e.id);$("paymentAmount").value=ep?.amount||"";$("paymentReference").value=ep?.reference||"";$("stage").value=e.stage||"Solicitud";$("rem").value=e.reminder_hours||72;$("notifications").value=e.notifications||"";$("notes").value=e.notes||"";
-  }else{$("sd").value=iso();$("ed").value=iso();$("rem").value=72;$("paymentAmount").value="";$("paymentReference").value=""}
+  }else{$("sd").value=iso();$("rem").value=72;$("paymentAmount").value="";$("paymentReference").value=""}
 }
 function closeModal(){$("modal").classList.remove("open")}
 
@@ -486,7 +485,7 @@ $("logout").onclick=async()=>{await sb.auth.signOut();location.reload()}
 $("heroNew").onclick=()=>openEvent();$("heroFocus").onclick=()=>document.querySelector("[data-tab='calendarTab']").click();
 $("new").onclick=()=>openEvent();$("agendaNew").onclick=()=>openEvent();$("x").onclick=closeModal;$("cancel").onclick=closeModal;$("modal").onclick=e=>{if(e.target===$("modal"))closeModal()}
 $("prev").onclick=()=>{view.setMonth(view.getMonth()-1);renderCalendar();renderStats()};$("next").onclick=()=>{view.setMonth(view.getMonth()+1);renderCalendar();renderStats()};$("today").onclick=()=>{view=new Date();view.setDate(1);renderCalendar();renderStats()};$("search").oninput=renderCalendar;$("clientSearch").oninput=renderClients;
-$("form").onsubmit=async e=>{e.preventDefault();try{await saveEvent({id:$("id").value||null,client:$("client").value,contact:$("contact").value,start_date:$("sd").value,end_date:$("ed").value||$("sd").value,start_time:$("st").value,end_time:$("et").value,status:$("status").value,event_type:$("type").value,location:$("loc").value,quote:$("quote").value,stage:$("stage").value,reminder_hours:$("rem").value,notifications:$("notifications").value,notes:$("notes").value,payment_amount:$("paymentAmount").value,payment_reference:$("paymentReference").value})}catch(err){alert(err.message)}}
+$("form").onsubmit=async e=>{e.preventDefault();try{await saveEvent({id:$("id").value||null,client:$("client").value,contact:$("contact").value,start_date:$("sd").value,end_date:$("sd").value,start_time:$("st").value,end_time:$("et").value,status:$("status").value,event_type:$("type").value,location:$("loc").value,quote:$("quote").value,stage:$("stage").value,reminder_hours:$("rem").value,notifications:$("notifications").value,notes:$("notes").value,payment_amount:$("paymentAmount").value,payment_reference:$("paymentReference").value})}catch(err){alert(err.message)}}
 $("del").onclick=()=>deleteEvent($("id").value)
 $("export").onclick=()=>{const blob=new Blob([JSON.stringify({events,clients,quotes,exported_at:new Date().toISOString()},null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="DJ_Onyxs_respaldo_"+iso()+".json";a.click();URL.revokeObjectURL(a.href)}
 $("importBtn").onclick=()=>{$("importFile").click()}
