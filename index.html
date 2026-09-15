@@ -317,7 +317,38 @@ async function upsertClient(name,contact){
   if(error)throw error;clients.push(data);return data;
 }
 
+/* DJ ONYXS: confirmed-event travel conflict rule */
+function confirmedEventTime(e, end=false){
+  const d=end?(e.end_date||e.event_date):e.event_date;
+  const t=end?(e.end_time||e.start_time):e.start_time;
+  if(!d)return null;
+  return new Date(d+'T'+(t||'00:00'));
+}
+function minutesBetween(a,b){return Math.round((b-a)/60000)}
+function checkConfirmedSchedule(payload){
+  if(payload.status!=='Confirmado')return {ok:true};
+  const ns=confirmedEventTime({event_date:payload.start_date,end_date:payload.end_date,start_time:payload.start_time,end_time:payload.end_time});
+  const ne=confirmedEventTime({event_date:payload.start_date,end_date:payload.end_date,start_time:payload.end_time||payload.start_time,end_time:payload.end_time});
+  if(!ns||!ne||isNaN(ns)||isNaN(ne)||ne<ns)return {ok:true};
+  const confirmed=(events||[]).filter(e=>e.status==='Confirmado'&&e.id!==payload.id);
+  for(const e of confirmed){
+    const es=confirmedEventTime(e,false),ee=confirmedEventTime(e,true);
+    if(!es||!ee||isNaN(es)||isNaN(ee))continue;
+    const overlap=ns<ee&&ne>es;
+    if(overlap)return {ok:false,hard:true,message:'NO SE PUEDE CONFIRMAR ESTE EVENTO. Se cruza con un evento ya confirmado: '+(e.title||'Evento')+'.'};
+    const gap=ns>=ee?minutesBetween(ee,ns):minutesBetween(ne,es);
+    if(gap<30)return {ok:false,hard:true,message:'NO SE PUEDE CONFIRMAR ESTE EVENTO. El traslado deja menos de 30 minutos entre eventos confirmados. Separación: '+gap+' min.'};
+    if(gap<60){
+      const allow=confirm('⚠️ REVISIÓN DEL MANAGER\n\nEvento confirmado cercano: '+(e.title||'Evento')+'\nSeparación disponible: '+gap+' minutos.\n\nLa regla estándar exige 60 minutos de backup para traslado.\n\n¿El MANAGER autoriza esta excepción considerando que el traslado puede realizarse en menos de 1 hora?');
+      if(!allow)return {ok:false,hard:true,message:'Confirmación cancelada por regla logística. Se requieren 60 minutos de backup o autorización del MANAGER.'};
+    }
+  }
+  return {ok:true};
+}
+
 async function saveEvent(payload){
+  const scheduleCheck=checkConfirmedSchedule(payload);
+  if(!scheduleCheck.ok){alert(scheduleCheck.message);return;}
   const client=await upsertClient(payload.client,payload.contact);
   const row={
     client_id:client.id,title:payload.client,event_date:payload.start_date,end_date:payload.end_date||payload.start_date,
