@@ -50,7 +50,7 @@ button,.wa{border:1px solid var(--line);border-radius:11px;padding:11px 14px;bac
 .tableWrap{overflow:auto}.dataTable{width:100%;border-collapse:collapse}.dataTable th,.dataTable td{padding:10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}.dataTable th{color:#c1cee2}.pill{display:inline-block;padding:5px 9px;border-radius:999px;background:#172642;border:1px solid #2b4166;font-size:11px;font-weight:800}
 .pipeline{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}.pipeCol{background:#0b1221cc;border:1px solid var(--line);border-radius:15px;padding:10px}.pipeTitle{font-weight:900;margin:4px 0 10px}.pipeItem{background:#101a30;border:1px solid #223252;border-radius:10px;padding:10px;margin-bottom:8px;cursor:pointer}.pipeItem b{display:block}.pipeItem small{color:var(--muted)}
 .clientGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.clientCard{background:#0c1527d9;border:1px solid var(--line);border-radius:14px;padding:14px}.clientCard .clientMeta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.clientCard .clientMeta>div{padding:8px;border:1px solid var(--line);border-radius:9px;background:#091120aa}.clientCard .clientLabel{font-size:10px;text-transform:uppercase;color:var(--muted);font-weight:800}.clientCard .clientValue{margin-top:3px;font-weight:700}.clientStatus{display:inline-flex;align-items:center;gap:7px;padding:5px 9px;border-radius:999px;border:1px solid #2b4166;background:#172642;font-size:11px;font-weight:900}.clientStatus .dot{width:7px;height:7px;border-radius:50%;background:var(--warn);animation:clientPulse 1.6s infinite}.clientStatus.enproceso .dot{background:var(--a2)}.clientStatus.finalizado .dot{background:var(--ok)}.clientStatus.pendiente .dot{background:var(--warn)}.balanceDue{color:var(--warn);font-weight:900}.paidOk{color:var(--ok);font-weight:900}@keyframes clientPulse{0%,100%{opacity:.55;transform:scale(.9)}50%{opacity:1;transform:scale(1.15)}}
-.checklist{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.check{display:flex;align-items:center;gap:9px;padding:11px;border:1px solid var(--line);border-radius:11px;background:#0b1221aa}.check input{width:auto}
+.checklist{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.check{display:flex;align-items:center;gap:9px;padding:11px;border:1px solid var(--line);border-radius:11px;background:#0b1221aa}.check input{width:auto}.productionEvents{display:grid;gap:14px}.productionEvent{border:1px solid var(--line);border-radius:15px;background:#0b1221cc;padding:14px}.productionEventHead{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:start}.productionEventMeta{display:flex;gap:8px;flex-wrap:wrap;margin-top:7px}.productionProgress{min-width:180px}.productionProgressBar{height:7px;border-radius:999px;background:#172642;overflow:hidden;border:1px solid #263b60}.productionProgressBar span{display:block;height:100%;background:linear-gradient(90deg,var(--a),var(--a2));border-radius:999px}.productionChecklist{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin-top:12px}.productionCheck{display:flex;align-items:center;gap:9px;padding:10px;border:1px solid var(--line);border-radius:10px;background:#080f1d}.productionCheck.done{border-color:#28694f;background:#0b1d19}.productionCheck input{width:auto}.productionEventActions{display:flex;gap:8px;justify-content:flex-end;margin-top:11px}.productionEmpty{padding:18px;border:1px dashed var(--line);border-radius:12px;text-align:center}.productionSummary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}.productionSummary .card{padding:12px}@media(max-width:700px){.productionChecklist{grid-template-columns:1fr}.productionEventHead{grid-template-columns:1fr}.productionSummary{grid-template-columns:1fr}}
 .about{display:grid;grid-template-columns:1fr 1fr;gap:14px}.aboutHero{font-size:38px;font-weight:900}.contactBox{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .section{scroll-margin-top:90px}.hidden{display:none!important}.muted{color:var(--muted)}.small{font-size:12px}
 .modal{position:fixed;inset:0;background:#000b;display:none;align-items:center;justify-content:center;padding:16px;z-index:80}.modal.open{display:flex}.box{width:min(950px,100%);max-height:93vh;overflow:auto;background:#0d1321;border:1px solid var(--line);border-radius:19px;padding:20px}.form{display:grid;grid-template-columns:repeat(2,1fr);gap:11px}.field{display:flex;flex-direction:column;gap:5px}.full{grid-column:1/-1}.field input,.field select,.field textarea{background:#080d18;color:#fff;border:1px solid var(--line);border-radius:9px;padding:11px}.field textarea{min-height:90px}.formactions{display:flex;justify-content:flex-end;gap:8px;margin-top:15px}
@@ -140,8 +140,13 @@ footer{max-width:1250px;margin:auto;padding:20px;color:#8794ad;border-top:1px so
 
   <section id="productionTab" class="tabpane hidden">
     <div class="card">
-      <div class="row"><div><h2>Producción</h2><div class="muted">Checklist operativo de la Central.</div></div><button id="resetChecklist">Reset checklist</button></div>
-      <div class="checklist" id="checklist"></div>
+      <div class="row"><div><h2>Producción</h2><div class="muted">Bitácora operativa por evento. Cada evento tiene su propio checklist y progreso.</div></div><button id="resetChecklist">Reset general</button></div>
+      <div class="productionSummary">
+        <div class="card"><div class="num" id="prodTotal">0</div><div class="label">Eventos con producción</div></div>
+        <div class="card"><div class="num" id="prodDone">0%</div><div class="label">Avance general</div></div>
+        <div class="card"><div class="num" id="prodPending">0</div><div class="label">Tareas pendientes</div></div>
+      </div>
+      <div id="checklist" class="productionEvents"></div>
     </div>
 
     <div class="card" id="adminPanel" style="margin-top:14px;display:none">
@@ -210,7 +215,7 @@ footer{max-width:1250px;margin:auto;padding:20px;color:#8794ad;border-top:1px so
 const SUPABASE_URL="https://wnkglydohfxpvbtoyvlr.supabase.co";
 const SUPABASE_KEY="sb_publishable_zsoAKxZU_aap7Yh4HeJSkg__VreveVI";
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-let user=null,role="NONE",events=[],clients=[],quotes=[],payments=[],profiles=[],view=new Date();view.setDate(1);
+let user=null,role="NONE",events=[],clients=[],quotes=[],payments=[],profiles=[],productionChecks=[],view=new Date();view.setDate(1);
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
 const iso=()=>new Date().toISOString().slice(0,10);
@@ -233,17 +238,19 @@ async function loadProfile(){
 
 async function loadAll(){
   $("syncState").textContent="● Sincronizando...";
-  const [er,cr,qr,pr]=await Promise.all([
+  const [er,cr,qr,pr,pcr]=await Promise.all([
     sb.from("events").select("*").order("event_date",{ascending:true}),
     sb.from("clients").select("*").order("name",{ascending:true}),
     sb.from("quotes").select("*").order("created_at",{ascending:false}),
-    sb.from("event_payments").select("*").order("created_at",{ascending:false})
+    sb.from("event_payments").select("*").order("created_at",{ascending:false}),
+    sb.from("production_checklists").select("*")
   ]);
-  if(er.error||cr.error||qr.error||pr.error){
-    $("syncState").textContent="● Error de sincronización: "+(er.error?.message||cr.error?.message||qr.error?.message||pr.error?.message);
+  if(er.error||cr.error||qr.error||pr.error||pcr.error){
+    $("syncState").textContent="● Error de sincronización: "+(er.error?.message||cr.error?.message||qr.error?.message||pr.error?.message||pcr.error?.message);
     return;
   }
-  events=er.data||[];clients=cr.data||[];quotes=qr.data||[];payments=pr.data||[];
+  events=er.data||[];clients=cr.data||[];quotes=qr.data||[];payments=pr.data||[];productionChecks=pcr.data||[];
+  await migrateLegacyChecklistIfNeeded();
   $("syncState").textContent="● Base conectada y sincronizada";
   renderAll();
 }
@@ -329,11 +336,13 @@ const checklistDefault=[
   "Preparar playlist / referencias","Revisar equipo y respaldo","Confirmar transporte / carga",
   "Enviar recordatorio 72 h","Checklist final de producción"
 ];
-function renderChecklist(){
-  const state=JSON.parse(localStorage.getItem("onyxs_checklist")||"{}");
-  $("checklist").innerHTML=checklistDefault.map((x,i)=>`<label class="check"><input type="checkbox" data-check="${i}" ${state[i]?"checked":""}>${x}</label>`).join("");
-  document.querySelectorAll("[data-check]").forEach(c=>c.onchange=()=>{const s=JSON.parse(localStorage.getItem("onyxs_checklist")||"{}");s[c.dataset.check]=c.checked;localStorage.setItem("onyxs_checklist",JSON.stringify(s))})
-}
+function productionStateFor(eventId){const out={};(productionChecks||[]).filter(x=>x.event_id===eventId).forEach(x=>{out[x.item_index]=!!x.completed});return out}
+function productionProgress(state){const done=checklistDefault.reduce((n,_,i)=>n+(state[i]?1:0),0);return {done,total:checklistDefault.length,pct:Math.round(done/checklistDefault.length*100)}}
+function productionAutoState(e){const state={};if(!e)return state;state[0]=e.status==="Confirmado"||e.status==="Realizado"||e.stage==="Confirmación"||e.stage==="Evento realizado";state[1]=!!(e.event_date&&e.start_time&&e.end_time&&e.venue);state[2]=!!e.contact;state[6]=Number(e.reminder_hours||0)>=72&&!!e.reminder_hours;return state}
+async function saveProductionCheck(eventId,itemIndex,completed){const payload={event_id:eventId,item_index:Number(itemIndex),completed:!!completed,updated_by:user?.id||null,updated_at:new Date().toISOString()};const {data,error}=await sb.from("production_checklists").upsert(payload,{onConflict:"event_id,item_index"}).select().single();if(error){alert("No se pudo guardar el avance: "+error.message);return}const idx=productionChecks.findIndex(x=>x.event_id===eventId&&Number(x.item_index)===Number(itemIndex));if(idx>=0)productionChecks[idx]=data;else productionChecks.push(data);renderChecklist()}
+async function resetProductionEvent(eventId){if(!confirm("¿Resetear el checklist de este evento?"))return;const {error}=await sb.from("production_checklists").delete().eq("event_id",eventId);if(error){alert(error.message);return}productionChecks=productionChecks.filter(x=>x.event_id!==eventId);renderChecklist()}
+async function migrateLegacyChecklistIfNeeded(){const legacy=JSON.parse(localStorage.getItem("onyxs_checklist")||"{}");if(!Object.keys(legacy).length||!events.length||productionChecks.length)return;const marker="onyxs_checklist_migrated_v3";if(localStorage.getItem(marker))return;const first=events[0];for(const [idx,val] of Object.entries(legacy)){if(val)await saveProductionCheck(first.id,idx,true)}localStorage.setItem(marker,String(Date.now()))}
+function renderChecklist(){const list=[...(events||[])].sort((a,b)=>String(a.event_date).localeCompare(String(b.event_date)));const totalTasks=list.length*checklistDefault.length;let totalDone=0,pending=0;$("checklist").innerHTML=list.map(e=>{const saved=productionStateFor(e.id);const auto=productionAutoState(e);const state={...auto,...saved};const prog=productionProgress(state);totalDone+=prog.done;pending+=prog.total-prog.done;const client=eventClientName(e);return `<div class="productionEvent"><div class="productionEventHead"><div><div class="row"><h3 style="margin:0">${esc(client)}</h3><span class="pill">${esc(e.status||"Solicitud")}</span></div><div class="productionEventMeta"><span class="pill">${esc(e.event_date||"")}</span><span class="pill">${esc(eventType(e))}</span><span class="pill">${esc(e.venue||"Sin ubicación")}</span>${e.start_time?`<span class="pill">${esc(String(e.start_time).slice(0,5))}${e.end_time?` → ${esc(String(e.end_time).slice(0,5))}`:""}</span>`:""}</div></div><div class="productionProgress"><div class="row"><strong>${prog.pct}%</strong><span class="small muted">${prog.done}/${prog.total} tareas</span></div><div class="productionProgressBar"><span style="width:${prog.pct}%"></span></div></div></div><div class="productionChecklist">${checklistDefault.map((x,i)=>`<label class="productionCheck ${state[i]?"done":""}"><input type="checkbox" data-prod-check="${e.id}" data-item="${i}" ${state[i]?"checked":""}>${x}</label>`).join("")}</div><div class="productionEventActions"><button type="button" onclick="openEventById('${e.id}')">Ver / editar evento</button><button type="button" class="danger" data-prod-reset="${e.id}">Reset este evento</button></div></div>`}).join("")||'<div class="productionEmpty muted">No hay eventos registrados todavía. Al crear un evento aparecerá aquí su bitácora de producción.</div>';$("prodTotal").textContent=list.length;$("prodDone").textContent=totalTasks?Math.round(totalDone/totalTasks*100)+"%":"0%";$("prodPending").textContent=pending;document.querySelectorAll("[data-prod-check]").forEach(c=>c.onchange=()=>saveProductionCheck(c.dataset.prodCheck,c.dataset.item,c.checked));document.querySelectorAll("[data-prod-reset]").forEach(b=>b.onclick=()=>resetProductionEvent(b.dataset.prodReset))}
 
 function renderStats(){
   const y=view.getFullYear(),m=view.getMonth();
@@ -482,7 +491,7 @@ $("del").onclick=()=>deleteEvent($("id").value)
 $("export").onclick=()=>{const blob=new Blob([JSON.stringify({events,clients,quotes,exported_at:new Date().toISOString()},null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="DJ_Onyxs_respaldo_"+iso()+".json";a.click();URL.revokeObjectURL(a.href)}
 $("importBtn").onclick=()=>{$("importFile").click()}
 $("importFile").onchange=async e=>{if(role!=="ADMIN"){alert("Solo ADMIN puede importar respaldos.");return}const f=e.target.files?.[0];if(!f)return;try{const j=JSON.parse(await f.text());if(!confirm("La importación agregará registros a la base. ¿Continuar?"))return;for(const ev of (j.events||[])){const clientName=(j.clients||[]).find(c=>c.id===ev.client_id)?.name||ev.title||"Cliente";await saveEvent({client:clientName,contact:ev.contact||"",start_date:ev.event_date,end_date:ev.end_date||ev.event_date,start_time:ev.start_time?.slice(0,5),end_time:ev.end_time?.slice(0,5),status:ev.status||"Solicitud",event_type:ev.event_type||ev.title,location:ev.venue,quote:ev.quote,stage:ev.stage||"Solicitud",reminder_hours:ev.reminder_hours||72,notifications:ev.notifications||"",notes:ev.notes||""});}alert("Respaldo importado.")}catch(err){alert("No se pudo importar: "+err.message)}}
-$("resetChecklist").onclick=()=>{localStorage.removeItem("onyxs_checklist");renderChecklist()}
+$("resetChecklist").onclick=()=>{if(confirm("¿Resetear todos los checklists por evento?")){sb.from("production_checklists").delete().neq("event_id","00000000-0000-0000-0000-000000000000").then(({error})=>{if(error)alert(error.message);else{productionChecks=[];renderChecklist()}})}}
 
 document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));document.querySelectorAll(".tabpane").forEach(x=>x.classList.add("hidden"));b.classList.add("active");$(b.dataset.tab).classList.remove("hidden")});
 document.querySelectorAll("[data-scroll]").forEach(b=>b.onclick=()=>document.getElementById(b.dataset.scroll)?.scrollIntoView({behavior:"smooth"}))
@@ -514,7 +523,7 @@ sb.auth.onAuthStateChange((_event,session)=>{
   await bootSession(session);
 })();
 
-const channel=sb.channel("onyxs-live-final").on("postgres_changes",{event:"*",schema:"public",table:"events"},()=>loadAll()).on("postgres_changes",{event:"*",schema:"public",table:"clients"},()=>loadAll()).on("postgres_changes",{event:"*",schema:"public",table:"quotes"},()=>loadAll()).on("postgres_changes",{event:"*",schema:"public",table:"profiles"},()=>loadProfile().then(()=>loadAll())).subscribe();
+const channel=sb.channel("onyxs-live-final").on("postgres_changes",{event:"*",schema:"public",table:"events"},()=>loadAll()).on("postgres_changes",{event:"*",schema:"public",table:"clients"},()=>loadAll()).on("postgres_changes",{event:"*",schema:"public",table:"quotes"},()=>loadAll()).on("postgres_changes",{event:"*",schema:"public",table:"event_payments"},()=>loadAll()).on("postgres_changes",{event:"*",schema:"public",table:"production_checklists"},()=>loadAll()).on("postgres_changes",{event:"*",schema:"public",table:"profiles"},()=>loadProfile().then(()=>loadAll())).subscribe();
 setInterval(()=>{if(activeView())loadAll()},15000);
 </script>
 </body>
